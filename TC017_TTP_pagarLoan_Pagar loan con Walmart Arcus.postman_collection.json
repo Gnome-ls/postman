@@ -1,0 +1,570 @@
+{
+	"info": {
+		"_postman_id": "532e4a47-d791-4991-bfe3-d4bff7d1437a",
+		"name": "TC017_TTP_pagarLoan_Pagar loan con Walmart Arcus",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26276651"
+	},
+	"item": [
+		{
+			"name": "https://customer-registration.aplazo.{{env}}/login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var response = JSON.parse(responseBody);\r",
+							"pm.globals.set(\"access_token-login\", response.Authorization);\r",
+							"\r",
+							"pm.test(\"Token was successfully generated\", function() {\r",
+							"var jsonData = pm.response.json();\r",
+							"pm.expect(jsonData.Authorization).is.not.undefined\r",
+							"});\r",
+							"\r",
+							"if ([201, 200].includes(pm.response.code)) {\r",
+							"  console.log(\"Success\");\r",
+							"  pm.test(\"Status code is \"+pm.response.code)\r",
+							"} else if (!pm.expect(pm.response.code).to.be.oneOf([500, 504, 409, 404, 423, 400, 403])) {\r",
+							"  const $ = cheerio.load(pm.response.text());\r",
+							"  // console.log(\"error html\");\r",
+							"  pm.test(\"html error message\", () => {\r",
+							"    console.log($(\"body\").text());\r",
+							"    pm.expect.fail(\"Failed\");\r",
+							"  });\r",
+							"} else {\r",
+							"  console.log(\"Error\");\r",
+							"  pm.test(\"error message\", () => {\r",
+							"    jsonData = pm.response.json();\r",
+							"    console.log(\"Response value is:\" + jsonData.error);\r",
+							"    console.log(\"Response value is:\" + jsonData.httpStatus);\r",
+							"    pm.expect.fail(\"Status code is \"+pm.response.code+\" \" +jsonData.error);\r",
+							"  });\r",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.globals.set(\"phone\", \"522283028124\");",
+							"pm.globals.set(\"env\", \"net\");",
+							"//pm.globals.set(\"amount\", \"3500\");",
+							"//pm.globals.set(\"loanId\", \"39826\");",
+							"//pm.globals.set(\"transactionId\", \"107684\");",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"login\":\"{{phone}}\",\"password\":\"123456\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://customer-registration.aplazo.{{env}}/login",
+					"protocol": "https",
+					"host": [
+						"customer-registration",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://api.aplazo.{{env}}/customer/info",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if ([201, 200].includes(pm.response.code)) {",
+							"    var response = JSON.parse(responseBody);",
+							"    pm.globals.set(\"sourceId\", response.cards[0].source_id);",
+							"    //console.log(response.cards[0].source_id);",
+							"    pm.test(\"Status code is \"+pm.response.code);",
+							"} else if (!pm.expect(pm.response.code).to.be.oneOf([500, 504, 409, 404, 423, 400])) {",
+							"    const $ = cheerio.load(pm.response.text());",
+							"    // console.log(\"error html\");",
+							"    pm.test(\"html error message\", () => {",
+							"        console.log($(\"body\").text());",
+							"        pm.expect.fail(\"Failed\");",
+							"    });",
+							"} else {",
+							"    console.log(\"error\");",
+							"    pm.test(\"error message\", () => {",
+							"        jsonData = pm.response.json();",
+							"        console.log(\"Response value is:\" + jsonData.error);",
+							"        console.log(\"Response value is:\" + jsonData.httpStatus);",
+							"        pm.expect.fail(\"Status code is \"+pm.response.code+\" \" +jsonData.error);",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://api.aplazo.{{env}}/customer/info",
+					"protocol": "https",
+					"host": [
+						"api",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"customer",
+						"info"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://customer-mono.aplazo.{{env}}/api/v1/customer/loan-history?",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var response = JSON.parse(responseBody);",
+							"",
+							"for (let i = 0; i < response.content.length; i++) {",
+							"    if (response.content[i].status == 'OUTSTANDING') {",
+							"        pm.globals.set(\"loan\", response.content[i].id);",
+							"        pm.globals.set(\"installments\", response.content[i].installments)",
+							"        pm.globals.set(\"statusLoan\", response.content[i].status)",
+							"        break; ",
+							"    } else if (response.content[i].status == 'HISTORICAL'){",
+							"        console.log(\"Estatus de loan no es OUTSTANDING\");",
+							"        pm.globals.set(\"loan\", response.content[i].id);",
+							"        pm.globals.set(\"statusLoan\", response.content[i].status)",
+							"    }",
+							"}",
+							"",
+							"if ([201, 200].includes(pm.response.code)) {",
+							"    pm.test(\"Status code is \"+pm.response.code);",
+							"} else if (!pm.expect(pm.response.code).to.be.oneOf([500, 504, 409, 404, 423, 400])) {",
+							"    const $ = cheerio.load(pm.response.text());",
+							"    // console.log(\"error html\");",
+							"    pm.test(\"html error message\", () => {",
+							"        console.log($(\"body\").text());",
+							"        pm.expect.fail(\"Failed\");",
+							"    });",
+							"} else {",
+							"    console.log(\"Error\");",
+							"    pm.test(\"error message\", () => {",
+							"        jsonData = pm.response.json();",
+							"        console.log(\"Response value is:\" + jsonData.error);",
+							"        console.log(\"Response value is:\" + jsonData.httpStatus);",
+							"        pm.expect.fail(\"Status code is \"+pm.response.code+\" \" +jsonData.error);",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://customer-mono.aplazo.{{env}}/api/v1/customer/loan-history?page=0&size=10&status=OUTSTANDING&status=LATE&status=DEFAULTED&status=HISTORICAL",
+					"protocol": "https",
+					"host": [
+						"customer-mono",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"customer",
+						"loan-history"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						},
+						{
+							"key": "status",
+							"value": "OUTSTANDING"
+						},
+						{
+							"key": "status",
+							"value": "LATE"
+						},
+						{
+							"key": "status",
+							"value": "DEFAULTED"
+						},
+						{
+							"key": "status",
+							"value": "HISTORICAL"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "customer/loan/{{loan}}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var response = JSON.parse(responseBody);",
+							"",
+							"",
+							"if (pm.globals.get(\"statusLoan\") == 'OUTSTANDING' || pm.globals.get(\"statusLoan\") == 'LATE' ) {",
+							"    for (let i = 0; i < response.transactions.length; i++) {",
+							"        if (response.transactions[i].status == 'NEXT') {",
+							"            pm.globals.set(\"transactionId\", response.transactions[i].id);",
+							"            pm.globals.set(\"statusInstallment\", response.transactions[i].status);",
+							"            pm.globals.set(\"amount\", Math.round(response.transactions[i].amount*100));",
+							"            break; ",
+							"        }",
+							"    }",
+							"}",
+							"",
+							"if (pm.globals.get(\"statusLoan\") == 'HISTORICAL' ) {",
+							"    console.log(\"Es loan esta en status diferente a OUTSTANDING\")",
+							"}",
+							"",
+							"if ([201, 200].includes(pm.response.code)) {",
+							"  pm.test(\"Status code is \"+pm.response.code)",
+							"} else if (!pm.expect(pm.response.code).to.be.oneOf([500, 504, 409, 404, 423, 400])) {",
+							"  const $ = cheerio.load(pm.response.text());",
+							"  // console.log(\"error html\");",
+							"  pm.test(\"html error message\", () => {",
+							"    console.log($(\"body\").text());",
+							"    pm.expect.fail(\"Failed\");",
+							"  });",
+							"} else {",
+							"  console.log(\"error\");",
+							"  pm.test(\"error message\", () => {",
+							"    jsonData = pm.response.json();",
+							"    console.log(\"Response value is:\" + jsonData.error);",
+							"    console.log(\"Response value is:\" + jsonData.httpStatus);",
+							"    pm.expect.fail(\"Status code is \"+pm.response.code+\" \" +jsonData.error);",
+							"  });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://api.aplazo.{{env}}/customer/loan/{{loan}}",
+					"protocol": "https",
+					"host": [
+						"api",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"customer",
+						"loan",
+						"{{loan}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://arcus-ms.aplazo.{{env}}/api/v1/reference/walmart?loanId={{loan}}",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var response = JSON.parse(responseBody);",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"",
+							"    pm.globals.set(\"referenciaWalmart\", response.reference);",
+							"    let referencia = pm.globals.get(\"referenciaWalmart\");",
+							"",
+							"    pm.globals.set(\"totalAmount\", response.totalAmount);",
+							"",
+							"    var amountArcus = pm.globals.get(\"totalAmount\");",
+							"    var newAmountArcus = Math.round(amountArcus*100) ;",
+							"    pm.globals.set(\"newAmountArcus\", newAmountArcus);",
+							"    console.log(newAmountArcus);",
+							"",
+							"    pm.globals.set(\"totalAmount\", response.totalAmount);",
+							"",
+							"    pm.test(\"Es WholePayment\", function() {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.isWholePayment).to.eql(true);",
+							"    })",
+							"",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}"
+					},
+					{
+						"key": "Idempotency-Key",
+						"value": "{{$guid}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://arcus-ms.aplazo.{{env}}/api/v1/reference/walmart?loanId={{loan}}",
+					"protocol": "https",
+					"host": [
+						"arcus-ms",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"reference",
+						"walmart"
+					],
+					"query": [
+						{
+							"key": "loanId",
+							"value": "{{loan}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://arcus-ms.aplazo.{{env}}/api/v2/authentication",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var response = JSON.parse(responseBody);",
+							"pm.globals.set(\"access_token-login-arcus\", response.token);",
+							"",
+							"if ([201, 200].includes(pm.response.code)) {",
+							"  console.log(\"Success\");",
+							"  pm.test(\"Status code is \"+pm.response.code)",
+							"} else if (!pm.expect(pm.response.code).to.be.oneOf([500, 504, 409, 404, 423, 400, 403])) {",
+							"  const $ = cheerio.load(pm.response.text());",
+							"  // console.log(\"error html\");",
+							"  pm.test(\"html error message\", () => {",
+							"    console.log($(\"body\").text());",
+							"    pm.expect.fail(\"Failed\");",
+							"  });",
+							"} else {",
+							"  console.log(\"Error\");",
+							"  pm.test(\"error message\", () => {",
+							"    jsonData = pm.response.json();",
+							"    console.log(\"Response value is:\" + jsonData.error);",
+							"    console.log(\"Response value is:\" + jsonData.httpStatus);",
+							"    pm.expect.fail(\"Status code is \"+pm.response.code+\" \" +jsonData.error);",
+							"  });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"user\": \"arcus\",\n    \"password\": \"Arcu$@uth\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://arcus-ms.aplazo.{{env}}/api/v2/authentication",
+					"protocol": "https",
+					"host": [
+						"arcus-ms",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"api",
+						"v2",
+						"authentication"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "https://arcus-ms.aplazo.{{env}}/api/v2/arcuspay Copy",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Obtén el valor actual de la variable \"loan\"",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(201);",
+							"",
+							"    let idLoan = pm.globals.get(\"loan\");",
+							"",
+							"    // Convierte el valor a una cadena para obtener su longitud",
+							"    let loan = idLoan.toString();",
+							"",
+							"    // Verifica si la longitud es menor que 9",
+							"    if (loan.length < 9) {",
+							"    // Calcula cuántos ceros se deben agregar al principio para tener 9 cifras",
+							"    const cerosFaltantes = 9 - loan.length;",
+							"    // Agrega los ceros al principio del valor actual de \"id\"",
+							"    loan = \"0\".repeat(cerosFaltantes) + loan;",
+							"    }",
+							"",
+							"    // Actualiza el valor de la variable \"id\" en el entorno con el nuevo valor de 9 cifras",
+							"    pm.globals.set(\"idLoan\", loan);",
+							"    console.log(loan);",
+							"",
+							"    // Obtén el valor actual de la variable \"transactionId\"",
+							"    let idTransaction = pm.globals.get(\"transactionId\");",
+							"    let transaction = idTransaction.toString();",
+							"",
+							"    if (transaction.length < 9) {",
+							"    const cerosFaltantes = 9 - transaction.length;",
+							"    transaction = \"0\".repeat(cerosFaltantes) + transaction;",
+							"    }",
+							"",
+							"    pm.globals.set(\"idTransaction\", transaction);",
+							"    console.log(transaction);",
+							"",
+							"    pm.test(\"Es pagado por arcuspay\", function() {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.object).to.eql(\"arcuspay\");",
+							"    })",
+							"",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Idempotency-Key",
+						"value": "{{$guid}}",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login-arcus}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id\": \"ap_23125139\",\n  \"object\": \"arcuspay\",\n  \"type\": \"bill_pay\",\n  \"account_reference\": \"{{referenciaWalmart}}\", \n  \"country\": \"MX\",\n  \"amount\": \"{{newAmountArcus}}\",\n  \"currency\": \"MXN\",\n  \"payer_id\": \"23312\",\n  \"metadata\": {\n    \"pos_id\": \"23442\",\n    \"cashier_id\": \"xx@3444df_id_33\"\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://arcus-ms.aplazo.{{env}}/api/v2/arcuspay",
+					"protocol": "https",
+					"host": [
+						"arcus-ms",
+						"aplazo",
+						"{{env}}"
+					],
+					"path": [
+						"api",
+						"v2",
+						"arcuspay"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

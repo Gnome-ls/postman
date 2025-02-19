@@ -1,0 +1,913 @@
+{
+	"info": {
+		"_postman_id": "45df3fa8-e824-403b-9b66-62ad41a95eec",
+		"name": "TC001_HP_agregarTarjeta_Agregar tarjeta de Debito VISA",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26276651"
+	},
+	"item": [
+		{
+			"name": "POST_Login ADMIN",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.globals.set(\"env\", \".net\");",
+							"pm.globals.set(\"phone\", \"529311931193\");",
+							"",
+							"//endpoints",
+							"pm.globals.set(\"api.aplazo\", \"https://api.aplazo\");",
+							"pm.globals.set(\"vgs-api-sandbox\",\"https://api.sandbox.verygoodvault.com\")",
+							"pm.globals.set(\"customer-registration.aplazo\", \"https://customer-registration.aplazo\");",
+							"pm.globals.set(\"customcard-aplazo\", \"https://pcustomcard.aplazo\");",
+							"pm.globals.set(\"customer-info\", \"https://mobile-inquiry.aplazo\");",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    if (pm.response.code !== 200) {",
+							"        postman.setNextRequest(null); // Detiene la ejecución",
+							"    }",
+							"",
+							"    var response = pm.response.json();",
+							"    pm.globals.set(\"Authorization-ADMIN\", response.Authorization);",
+							"});",
+							"",
+							"pm.test(\"Token generado\", function() {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.Authorization).to.not.be.undefined;",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\": \"admin@admin.com\",\n    \"password\": \"Aplazo@123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api.aplazo}}{{env}}/login",
+					"host": [
+						"{{api.aplazo}}{{env}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Tokenize card",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Verificar el código de estado de la respuesta",
+							"pm.test(\"Código de estado debe ser 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"    var response = pm.response.json();",
+							"    pm.environment.set(\"card_number\", response.data[0].aliases[0].alias);",
+							"    console.log(response.data[0].aliases[0].alias);",
+							"});",
+							"",
+							"// Ejecutar la prueba de \"Tarjeta de debito\"",
+							"pm.test(\"Tarjeta de debito\", function () {",
+							"    const valorVariable = pm.environment.get(\"card_type\");",
+							"    pm.expect(valorVariable).to.eql(\"DEBIT\");",
+							"    console.log(\"Valor de la variable:\", valorVariable);",
+							"    ",
+							"    pm.environment.set(\"tiempoEjecucion1\", pm.response.responseTime);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"var tarjeta = \"4111111111111111\";",
+							"pm.environment.set(\"card\", tarjeta);",
+							"",
+							"console.log(pm.environment.get(\"card\"));",
+							"",
+							"// Definir el objeto de mapeo de tarjetas",
+							"var tarjetasMap = {",
+							"  \"5451951574925480\": { card_type: \"CREDIT\", platform: \"ONLINE\" },",
+							"  \"5555555555554444\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4915669353237603\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4242424242424242\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4111111111111111\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"370000000000002\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4917300800000000\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4607000000000009\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"6011088896715918\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4349001386781322\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"5555556355564617\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  //AMEX",
+							"  \"378282246310005\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  //ebanx fondos insuficientes",
+							"  \"4716909774636285\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"5102026827345142\": { card_type: \"DEBIT\", platform: \"ONLINE\" },",
+							"  \"4574441215190335\": { card_type: \"CREDIT\", platform: \"ONLINE\" }",
+							"};",
+							"",
+							"// Verificar si la tarjeta está en el objeto de mapeo",
+							"if (tarjeta in tarjetasMap) {",
+							"  var cardInfo = tarjetasMap[tarjeta];",
+							"  pm.environment.set(\"card_type\", cardInfo.card_type);",
+							"  pm.environment.set(\"platform\", cardInfo.platform);",
+							"  var substring = tarjeta.substring(0, 8);",
+							"  pm.environment.set(\"bin\", substring);",
+							"} else {",
+							"    console.log(\"no esta\")",
+							"}",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic VVM5UkVzVEhCN2VhaFNlVkFMeEdSakVzOmM4NjhlY2E4LTE5YWUtNGY4MC05MjdlLWQ0YzEzYWNlYjZiNg=="
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"data\": [\n    {\n      \"value\": \"{{card}}\",\n      \"classifiers\": [\n        \"UUID\"\n      ],\n      \"format\": \"FPE_SIX_T_FOUR\",\n      \"storage\": \"PERSISTENT\"\n    }\n    ]\n  }"
+				},
+				"url": {
+					"raw": "{{vgs-api-sandbox}}/aliases",
+					"host": [
+						"{{vgs-api-sandbox}}"
+					],
+					"path": [
+						"aliases"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Tokenize expiration date",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Código de estado debe ser 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"",
+							"    var resp = pm.response.json();",
+							"    pm.globals.set(\"card_expiration_date\", resp.data[0].aliases[0].alias);",
+							"",
+							"    console.log(resp.data[0].aliases[0].alias);",
+							"",
+							"    var formattedDate = pm.environment.get(\"currentMonth\")+'/'+pm.environment.get(\"currentYear\");",
+							"",
+							"    pm.test(\"Fecha capturada\", function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.data[0].value).to.not.be.null;",
+							"    });",
+							"",
+							"    pm.test(\"Fecha de expiración igual a \"+formattedDate, function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.data[0].value).to.eql(formattedDate);",
+							"    });",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"",
+							"// Obtener la fecha actual",
+							"const currentDate = new Date();",
+							"// Obtener el mes actual (como número) y agregarle 1 (los meses en JavaScript se cuentan desde 0)",
+							"const currentMonth = (currentDate.getMonth() + 1).toString().padStart(2, '0');",
+							"// Obtener el día actual y agregarle un cero adelante si es menor que 10",
+							"const currentDay = currentDate.getDate().toString().padStart(2, '0');",
+							"// Obtener el año actual",
+							"const currentYear = currentDate.getFullYear() + 3;",
+							"// Imprimir el día, mes y año en la consola de Postman (opcional, para verificar)",
+							"//console.log(`Día actual: ${currentDay}, Mes actual: ${currentMonth}, Año actual: ${currentYear}`);",
+							"// Guardar el día, mes y año en variables de entorno para usarlos en otras partes de la solicitud",
+							"pm.environment.set('currentDay', currentDay);",
+							"pm.environment.set('currentMonth', currentMonth);",
+							"pm.environment.set('currentYear', currentYear);"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic VVM5UkVzVEhCN2VhaFNlVkFMeEdSakVzOmM4NjhlY2E4LTE5YWUtNGY4MC05MjdlLWQ0YzEzYWNlYjZiNg=="
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"data\": [\n    {\n      \"value\": \"{{currentMonth}}/{{currentYear}}\",\n      \"classifiers\": [\n        \"expiry\"\n      ],\n      \"format\": \"FPE_SIX_T_FOUR\",\n      \"storage\": \"PERSISTENT\"\n    }\n    ]\n  }"
+				},
+				"url": {
+					"raw": "{{vgs-api-sandbox}}/aliases",
+					"host": [
+						"{{vgs-api-sandbox}}"
+					],
+					"path": [
+						"aliases"
+					]
+				},
+				"description": "Se debe permitir realizar la tokenización de la tarjeta que se envía en tarjeta el cual se debe visualizar en la respuesta en value"
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Tokenize CVV",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.globals.set(\"cvv\",Math.random().toString().concat(\"0\".repeat(3)).substr(2,3));"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Código de estado debe ser 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"",
+							"    var response = JSON.parse(responseBody);",
+							"    pm.globals.set(\"card_security_code\", response.data[0].aliases[0].alias);",
+							"",
+							"    console.log(response.data[0].aliases[0].alias);",
+							"",
+							"    pm.test(\"CVV capturado\", function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.data[0].value).to.not.be.null;",
+							"    });",
+							"",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic VVM5UkVzVEhCN2VhaFNlVkFMeEdSakVzOmM4NjhlY2E4LTE5YWUtNGY4MC05MjdlLWQ0YzEzYWNlYjZiNg=="
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"data\": [\n    {\n      \"value\": \"{{cvv}}\",\n      \"classifiers\": [\n        \"cvv\"\n      ],\n      \"format\": \"FPE_SIX_T_FOUR\",\n      \"storage\": \"VOLATILE\"\n    }\n    ]\n  }"
+				},
+				"url": {
+					"raw": "{{vgs-api-sandbox}}/aliases",
+					"host": [
+						"{{vgs-api-sandbox}}"
+					],
+					"path": [
+						"aliases"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Tokenize month",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Código de estado debe ser 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"",
+							"    var response = pm.response.json();",
+							"    pm.globals.set(\"card_expiration_month\", response.data[0].aliases[0].alias);",
+							"",
+							"    console.log(response.data[0].aliases[0].alias);",
+							"",
+							"    var mes = pm.environment.get(\"currentMonth\");",
+							"",
+							"    pm.test(\"Mes capturado\", function () {",
+							"        pm.expect(response.data[0].value).to.not.be.null;",
+							"    });",
+							"",
+							"    pm.test(\"Mes de expiración igual a \"+mes, function () {",
+							"        pm.expect(response.data[0].value).to.eql(mes);",
+							"    });",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic VVM5UkVzVEhCN2VhaFNlVkFMeEdSakVzOmM4NjhlY2E4LTE5YWUtNGY4MC05MjdlLWQ0YzEzYWNlYjZiNg=="
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"data\": [\n    {\n      \"value\": \"{{currentMonth}}\",\n      \"classifiers\": [\n        \"expiry\"\n      ],\n      \"format\": \"FPE_SIX_T_FOUR\",\n      \"storage\": \"PERSISTENT\"\n    }\n    ]\n  }"
+				},
+				"url": {
+					"raw": "{{vgs-api-sandbox}}/aliases",
+					"host": [
+						"{{vgs-api-sandbox}}"
+					],
+					"path": [
+						"aliases"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Tokenize year",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"var anio = pm.environment.get(\"currentYear\");",
+							"var anioString = anio.toString();",
+							"var ultimosDosDigitos = anioString.substring(2);",
+							"pm.environment.set(\"lastTwoDigits\", ultimosDosDigitos); "
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Fixed the failing test for response time",
+							"pm.test(\"Código de estado debe ser 201\", function () {",
+							"    pm.response.to.have.status(201);",
+							"",
+							"    pm.test(\"Año capturado\", function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.data[0].value).to.not.be.null;",
+							"    });",
+							"",
+							"    pm.test(\"Año de expiración igual a \" + pm.environment.get(\"lastTwoDigits\"), function () {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(jsonData.data[0].value).to.eql(pm.environment.get(\"lastTwoDigits\"));",
+							"    });",
+							"",
+							"    var response = pm.response.json();",
+							"    pm.globals.set(\"card_expiration_year\", response.data[0].aliases[0].alias);",
+							"",
+							"    console.log(response.data[0].aliases[0].alias);",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic VVM5UkVzVEhCN2VhaFNlVkFMeEdSakVzOmM4NjhlY2E4LTE5YWUtNGY4MC05MjdlLWQ0YzEzYWNlYjZiNg=="
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"data\": [\n    {\n      \"value\": \"{{lastTwoDigits}}\",\n      \"classifiers\": [\n        \"expiry\"\n      ],\n      \"format\": \"FPE_SIX_T_FOUR\",\n      \"storage\": \"PERSISTENT\"\n    }\n    ]\n}\n"
+				},
+				"url": {
+					"raw": "{{vgs-api-sandbox}}/aliases",
+					"host": [
+						"{{vgs-api-sandbox}}"
+					],
+					"path": [
+						"aliases"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Login CUSTOMER",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"\r",
+							"    var response = pm.response.json();\r",
+							"    pm.globals.set(\"access_token-login\", response.Authorization);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Token generado\", function() {\r",
+							"    var jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData.Authorization).to.not.be.undefined;\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-session-id-kount",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\": \"{{phone}}\",\n    \"password\": \"123456\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{customer-registration.aplazo}}{{env}}/login",
+					"host": [
+						"{{customer-registration.aplazo}}{{env}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Get card brand with BIN",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 or 400\", function () {",
+							"    if (pm.response.code === 200) {",
+							"        var response = pm.response.json();",
+							"",
+							"        var tipoTarjeta = response.scheme;",
+							"",
+							"        if (tipoTarjeta) {",
+							"            var tipoTarjetaEnMayusculas = tipoTarjeta.toUpperCase();",
+							"            pm.environment.set(\"scheme\", tipoTarjetaEnMayusculas);",
+							"        } else {",
+							"            console.error(\"El valor de response.scheme es nulo o indefinido.\");",
+							"        }",
+							"        pm.expect(pm.response.code).to.equal(200, 'El código de estado es 200');",
+							"    } else if (pm.response.code === 400) {",
+							"        var response = pm.response.json();",
+							"        var tipoTarjeta = response.scheme;",
+							"",
+							"        if (tipoTarjeta) {",
+							"            var tipoTarjetaEnMayusculas = tipoTarjeta.toUpperCase();",
+							"            pm.environment.set(\"scheme\", tipoTarjetaEnMayusculas);",
+							"        } else {",
+							"            console.error(\"El valor de response.scheme es nulo o indefinido.\");",
+							"        }",
+							"        pm.expect(pm.response.code).to.equal(400, 'El código de estado es 400');",
+							"    } else {",
+							"        pm.expect.fail('Se esperaba un código de estado 200 o 400, pero se recibió ' + pm.response.code);",
+							"    }",
+							"",
+							"    if(pm.response.status === \"OK\"){ // Fixed comparison operator",
+							"        setTimeout(function(){",
+							"            console.log(\"Sleeping for 2 seconds before next request.\");",
+							"        }, 2000);",
+							"        pm.execution.setNextRequest(\"/send-sms\");",
+							"    }",
+							"});",
+							"",
+							"if (pm.response.code !== 200 && pm.response.code !== 400) { // Fixed logical operator",
+							"    var trackId = pm.response.headers.get('trackId');",
+							"",
+							"    if (trackId !== null) {",
+							"        console.log(\"El track ID de la solicitud fallida es: \" + trackId);",
+							"    } else {",
+							"        console.log(\"No se encontró el track ID en la respuesta del error.\");",
+							"    }",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "UMr3RELVu46aBi2OappWw1jlFrnWnYPJ7Wijzj9r"
+					},
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"card_number\": \"{{bin}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{customcard-aplazo}}{{env}}/bin/identify",
+					"host": [
+						"{{customcard-aplazo}}{{env}}"
+					],
+					"path": [
+						"bin",
+						"identify"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET_Get CUSTOMER information",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Código de estado debe ser \"+pm.response.code, function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var response = pm.response.json();",
+							"pm.globals.set(\"customerId\", response.customerId);",
+							"pm.globals.set(\"customerName\", response.name);",
+							"//pm.globals.set(\"lastName\", response.lastName);",
+							"//pm.globals.set(\"secondLastName\", response.secondLastName);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Language",
+						"value": "es-ES,es;q=0.9",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{customer-info}}{{env}}/api/inquiry/v1/home",
+					"host": [
+						"{{customer-info}}{{env}}"
+					],
+					"path": [
+						"api",
+						"inquiry",
+						"v1",
+						"home"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Add card",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Código de estado debe ser \"+pm.response.code, function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"// Obtener el tiempo de inicio",
+							"var startTime = pm.variables.get('startTime');  ",
+							"",
+							"pm.test(\"Status de respuesta: Card Add Successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.code).to.eql(1);",
+							"    pm.expect(jsonData.message).to.eql(\"Card Add Successfully\");",
+							"});",
+							"",
+							"pm.test(\"Response Time: \"+pm.response.responseTime + \" ms\", function () {",
+							"    var tiempoEjecucion = pm.response.responseTime;",
+							"    console.log(\"Response Time: \" + tiempoEjecucion + \" xd\");",
+							"    pm.expect(tiempoEjecucion).to.be.below(20000); ",
+							"    console.log(\"Response Time: \" + pm.response.responseTime + \" ms\");",
+							"});",
+							"",
+							"// Genera un UUID",
+							"let uuid = pm.environment.replaceIn('{{$randomUUID}}');",
+							"",
+							"// Elimina los guiones del UUID",
+							"uuid = uuid.replace(/-/g, '');",
+							"",
+							"// Guarda el UUID sin guiones en una variable de entorno",
+							"pm.globals.set(\"device_session\", uuid);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Establecer el tiempo de inicio antes de enviar la solicitud",
+							"pm.variables.set('startTime', new Date().getTime());",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{access_token-login}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "apiKey",
+						"value": "bac413ad68a95369b9493c4eb38d14393fad73eb5db538cbbde2d95582ebf2aa5141f2d44d18892565d38695e79a722d0bff96f69a0b15f27b016768d9ddc079e92a4c2c02ad5b358b25c04332bf3d5a",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"card_expiration_date\": \"{{card_expiration_date}}\",\n  \"card_expiration_month\": \"{{card_expiration_month}}\",\n  \"card_expiration_year\": \"{{card_expiration_year}}\",\n  \"card_number\": \"{{card_number}}\",\n  \"card_security_code\": \"{{card_security_code}}\",\n  \"cardholder_name\": \"{{name}}\" ,\n  \"device_session\": \"{{device_session}}\",\n  \"card_type\": \"{{card_type}}\",\n  \"platform\": \"{{platform}}\",\n  \"bin\": \"{{bin}}\",\n  \"brand\": \"{{scheme}}\"\n}"
+				},
+				"url": {
+					"raw": "{{customcard-aplazo}}{{env}}/customer/card/token",
+					"host": [
+						"{{customcard-aplazo}}{{env}}"
+					],
+					"path": [
+						"customer",
+						"card",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET_Get active card",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"",
+							"    var response = pm.response.json();",
+							"    pm.globals.set(\"customerId\", response.customerId);",
+							"",
+							"    var tarjetaAgregada = pm.environment.get(\"card\");",
+							"    var cardString = tarjetaAgregada.toString();",
+							"    var ultimosCuatroDigitos = cardString.substring(12);",
+							"",
+							"    pm.test(\"Ultimos cuatro dígitos de la tarjeta \"+ultimosCuatroDigitos, function () {",
+							"        pm.expect(response.cardNumber).to.eql(ultimosCuatroDigitos);",
+							"    });",
+							"",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "accept",
+						"value": "application/json, text/plain, */*"
+					},
+					{
+						"key": "accept-language",
+						"value": "es-419,es;q=0.9"
+					},
+					{
+						"key": "authorization",
+						"value": "{{access_token-login}}"
+					},
+					{
+						"key": "cache-control",
+						"value": "no-cache"
+					},
+					{
+						"key": "origin",
+						"value": "https://customer.aplazo.net"
+					},
+					{
+						"key": "pragma",
+						"value": "no-cache"
+					},
+					{
+						"key": "priority",
+						"value": "u=1, i"
+					},
+					{
+						"key": "referer",
+						"value": "https://customer.aplazo.net/"
+					},
+					{
+						"key": "sec-ch-ua",
+						"value": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\""
+					},
+					{
+						"key": "sec-ch-ua-mobile",
+						"value": "?0"
+					},
+					{
+						"key": "sec-ch-ua-platform",
+						"value": "\"macOS\""
+					},
+					{
+						"key": "sec-fetch-dest",
+						"value": "empty"
+					},
+					{
+						"key": "sec-fetch-mode",
+						"value": "cors"
+					},
+					{
+						"key": "sec-fetch-site",
+						"value": "same-site"
+					},
+					{
+						"key": "user-agent",
+						"value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+					}
+				],
+				"url": {
+					"raw": "{{customer-info}}{{env}}/api/inquiry/v1/payment/active-card",
+					"host": [
+						"{{customer-info}}{{env}}"
+					],
+					"path": [
+						"api",
+						"inquiry",
+						"v1",
+						"payment",
+						"active-card"
+					]
+				},
+				"description": "Generated from cURL: curl 'https://mobile-inquiry.aplazo.net/api/inquiry/v1/payment/active-card' \\\n  -H 'accept: application/json, text/plain, */*' \\\n  -H 'accept-language: es-419,es;q=0.9' \\\n  -H 'authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI1MjkzMTE5MzExOTMiLCJleHBSZWZyZXNoIjoiMjAyNS0wMS0xNVQxODozMTowNi44MTA3MTYiLCJyb2xlIjoiUk9MRV9DVVNUT01FUiIsInJlZ1N0YXRlQ29kZSI6ImFjY2VwdGVkX2FncmVlbWVudCIsIm5hbWUiOiJtYXVyaWNpbyBlc2xhdmEgbWF0ZW8iLCJjdXN0b21lcklkIjoyNDgxMywic2Vzc2lvbklkIjoiYWI1N2E5ZTctMWU0MS00NTBhLWJjMDMtMTIzZTRlMjA4OGI1IiwiZXhwIjoxNzM0NDYwMjY2LCIyZmEiOnRydWUsImZpbmlzaFJlZyI6dHJ1ZSwicmVmcmVzaFRva2VuIjoiOGFmZGYxNzUtZDQyZi00ZjMwLTg0NDAtMzcyYjhkN2RkNjk4In0.6zIkkPD-l01lxK-i0AH9MDtr9l5jxqkDpxjZP_hzcmuUCStYdy88QeS0UpqxsG9R9hJ3foXC0h73grpHOX2MJg' \\\n  -H 'cache-control: no-cache' \\\n  -H 'origin: https://customer.aplazo.net' \\\n  -H 'pragma: no-cache' \\\n  -H 'priority: u=1, i' \\\n  -H 'referer: https://customer.aplazo.net/' \\\n  -H 'sec-ch-ua: \"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-site' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'"
+			},
+			"response": []
+		}
+	]
+}

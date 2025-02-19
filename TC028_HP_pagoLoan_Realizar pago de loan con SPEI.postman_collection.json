@@ -1,0 +1,387 @@
+{
+	"info": {
+		"_postman_id": "ba3bea4a-21f3-45ca-9e80-1a31edb70939",
+		"name": "TC028_HP_pagoLoan_Realizar pago de loan con SPEI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "26276651"
+	},
+	"item": [
+		{
+			"name": "POST_Login CUSTOMER",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"\r",
+							"    var response = JSON.parse(responseBody);\r",
+							"    pm.globals.set(\"Authorization-customer\", response.Authorization);\r",
+							"\r",
+							"    pm.test(\"Token was successfully generated\", function() {\r",
+							"        var jsonData = pm.response.json();\r",
+							"        pm.expect(jsonData.Authorization).is.not.undefined\r",
+							"    });\r",
+							"\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"pm.globals.set(\"api.aplazo\", \"https://api.aplazo.net\");",
+							"pm.globals.set(\"feature-flags.aplazo\", \"https://feature-flags.aplazo.net\");",
+							"pm.globals.set(\"cus-reg-aplazo\", \"https://customer-registration.aplazo.net\");",
+							"pm.globals.set(\"vcard.aplazo\", \"https://vcard.aplazo.net\");",
+							"pm.globals.set(\"ms-payments.apz\",\"https://ms-payments.aplazo.net\");",
+							"pm.globals.set(\"mobile-inquiry.apz\",\"https://mobile-inquiry.aplazo.net\");",
+							"pm.globals.set(\"paylink-aplazo\",\"https://paylink-ms.aplazo.net\");",
+							"pm.globals.set(\"stp-aplazo\",\"https://stp-ms.aplazo.net\");",
+							"",
+							"pm.globals.set(\"phone\", \"529311931193\");",
+							"pm.globals.set(\"totalPrice\", \"200\");",
+							"pm.globals.set(\"apiToken\",\"c2b7c861-7e19-4cbb-a646-15e7c17cafba\");",
+							"pm.globals.set(\"merchant_id\", \"2135\");",
+							"",
+							"pm.globals.set(\"dynamic\", \"dynamic-installmentsFlag\");"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "x-session-id-kount",
+						"value": "{{$randomUUID}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"login\": \"{{phone}}\",\n    \"password\": \"123456\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{cus-reg-aplazo}}/login",
+					"host": [
+						"{{cus-reg-aplazo}}"
+					],
+					"path": [
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET_loans OUTSTANDING, LATE DEFAULTED",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"",
+							"    var response = JSON.parse(responseBody);",
+							"",
+							"    for (let i = 0; i < response.content.length; i++) {",
+							"        if (response.content[i].status == 'OUTSTANDING') {",
+							"            pm.globals.set(\"loan\", response.content[i].id);",
+							"            pm.globals.set(\"installments\", response.content[i].installments)",
+							"            pm.globals.set(\"statusLoan\", response.content[i].status)",
+							"            break; ",
+							"        } else if (response.content[i].status == 'HISTORICAL'){",
+							"            console.log(\"Estatus de loan no es OUTSTANDING\");",
+							"            pm.globals.set(\"loan\", response.content[i].id);",
+							"            pm.globals.set(\"statusLoan\", response.content[i].status)",
+							"        }",
+							"    }",
+							"",
+							"    pm.test(\"Loan tiene status OUTSTANDING\", function() {",
+							"        var jsonData = pm.response.json();",
+							"        pm.expect(pm.globals.get(\"statusLoan\")).is.equal(\"OUTSTANDING\")",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{Authorization-customer}}"
+					}
+				],
+				"url": {
+					"raw": "https://customer-mono.aplazo.net/api/v1/customer/loan-history?page=0&size=10&status=OUTSTANDING&status=LATE&status=DEFAULTED",
+					"protocol": "https",
+					"host": [
+						"customer-mono",
+						"aplazo",
+						"net"
+					],
+					"path": [
+						"api",
+						"v1",
+						"customer",
+						"loan-history"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						},
+						{
+							"key": "status",
+							"value": "OUTSTANDING"
+						},
+						{
+							"key": "status",
+							"value": "LATE"
+						},
+						{
+							"key": "status",
+							"value": "DEFAULTED"
+						}
+					]
+				},
+				"description": "Generated from cURL: curl --location 'https://customer-mono.aplazo.net/api/v1/customer/loan-history?page=0&size=10&status=OUTSTANDING&status=LATE&status=DEFAULTED&status=HISTORICAL' \\\n--header 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI1MjIyODMwMjgxMjQiLCJleHBSZWZyZXNoIjoiMjAyNC0xMC0xOFQyMTo1MToyNy4zNzc5NTciLCJyb2xlIjoiUk9MRV9DVVNUT01FUiIsInJlZ1N0YXRlQ29kZSI6InNhdmVkX2xvZ2luIiwibmFtZSI6Ik1hdXJpY2lvIEVzbGF2YSBNYXRlbyIsImN1c3RvbWVySWQiOjE5MjA3LCJzZXNzaW9uSWQiOiJiZWIyNjJjYy01MjdhLTQ1MmQtYTQ0MS0xOTY0ZWVmNzgyOWQiLCJleHAiOjE3MjY3ODI2ODcsIjJmYSI6dHJ1ZSwiZmluaXNoUmVnIjpmYWxzZSwicmVmcmVzaFRva2VuIjoiYWRlNmI5YmItMTZhMi00ZWQ0LWFkZDUtNjExMDkwODk1OTc1In0.GCdqJY3cx-_1EwGKNg5Bgvlca914VzqZdP9N9UqDFe5dfcDHUk0b8Vlqdra5MOd-heZoIdos-Y_MZtWrLdEMDg'"
+			},
+			"response": []
+		},
+		{
+			"name": "GET_Clabe pay whole payment SPEI",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"",
+							"    var response = JSON.parse(responseBody);",
+							"    pm.globals.set(\"clabeLoan\", response.clabe);",
+							"    pm.globals.set(\"totalAmount\",response.totalAmount);",
+							"    pm.globals.set(\"isWholePayment\",response.reference);",
+							"    pm.globals.set(\"reference\",response.reference);",
+							"    var loanId = pm.globals.get(\"loan\");",
+							"    var referencia = pm.globals.get(\"reference\");",
+							"",
+							"    pm.test(\"Referencia generada para loan\", function () {",
+							"        var responseBody = pm.response.json();",
+							"        pm.expect(responseBody.isWholePayment).equals(true);",
+							"    });",
+							"",
+							"    pm.test(\"Referencia es igual a loan\", function () {",
+							"        var responseBody = pm.response.json();",
+							"        pm.expect(Number(referencia)).to.equal(Number(loanId), \"Referencia debe ser igual al valor de loan\");",
+							"    });",
+							"",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{Authorization-customer}}"
+					}
+				],
+				"url": {
+					"raw": "{{paylink-aplazo}}/api/v1/spei/clabe?loanId={{loan}}",
+					"host": [
+						"{{paylink-aplazo}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"spei",
+						"clabe"
+					],
+					"query": [
+						{
+							"key": "loanId",
+							"value": "{{loan}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST_Make payment with SPEI",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Basic U1RQOndkZWZwbCQx"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id\": {{$randomInt}},\n    \"fechaOperacion\": 20240429,\n    \"institucionOrdenante\": 90646,\n    \"institucionBeneficiaria\": 90646,\n    \"claveRastreo\": \"Pago SPEI-L{{loan}}\", \n    \"monto\": {{totalAmount}}, \n    \"nombreOrdenante\": \"Ruben Gallegos Gonzalez\",\n    \"tipoCuentaOrdenante\": 40,\n    \"cuentaOrdenante\": \"646180263400034522\",\n    \"rfcCurpOrdenante\": \"GAGR911030AC8\",\n    \"nombreBeneficiario\": \"SISTEMA DE TRANSFERENCIAS Y PAGOS STP SA\",\n    \"tipoCuentaBeneficiario\": 40,\n    \"cuentaBeneficiario\": \"{{clabeLoan}}\", \n    \"nombreBeneficiario2\": \"APLAZO\",\n    \"tipoCuentaBeneficiario2\": \"40\",\n    \"cuentaBeneficiario2\": \"646180368300000001\",\n    \"rfcCurpBeneficiario\": \"STP081030FE6\",\n    \"conceptoPago\": \"L{{loan}}\", \n    \"referenciaNumerica\": {{reference}}, \n    \"empresa\": \"APLAZO\",\n    \"tipoPago\": \"5\", \n    \"tsLiquidacion\": \"1695164880917\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{stp-aplazo}}/api/v1/codi/sendabono/receiver?InstitucionOrdenante=STPOrdenante&NombreOrdenente=STPNomOrdenante&CuentaBeneficiario=6000326787999",
+					"host": [
+						"{{stp-aplazo}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"codi",
+						"sendabono",
+						"receiver"
+					],
+					"query": [
+						{
+							"key": "InstitucionOrdenante",
+							"value": "STPOrdenante"
+						},
+						{
+							"key": "NombreOrdenente",
+							"value": "STPNomOrdenante"
+						},
+						{
+							"key": "CuentaBeneficiario",
+							"value": "6000326787999"
+						}
+					]
+				},
+				"description": "Generated from cURL: curl --location 'https://stp-ms.aplazo.net/api/v1/codi/sendabono/receiver?InstitucionOrdenante=STPOrdenante&NombreOrdenente=STPNomOrdenante&CuentaBeneficiario=6000326787999' \\\n--header 'Content-Type: application/json' \\\n--header 'Authorization: Basic U1RQOndkZWZwbCQx' \\\n--data '{\n    \"id\": 14228475,\n    \"fechaOperacion\": 20240429,\n    \"institucionOrdenante\": 90646,\n    \"institucionBeneficiaria\": 90646,\n    \"claveRastreo\": \"Pago SPEI-L134141\", \n    \"monto\": 28.60, \n    \"nombreOrdenante\": \"Ruben Gallegos Gonzalez\",\n    \"tipoCuentaOrdenante\": 40,\n    \"cuentaOrdenante\": \"646180263400034522\",\n    \"rfcCurpOrdenante\": \"GAGR911030AC8\",\n    \"nombreBeneficiario\": \"SISTEMA DE TRANSFERENCIAS Y PAGOS STP SA\",\n    \"tipoCuentaBeneficiario\": 40,\n    \"cuentaBeneficiario\": \"646962368300029378\", \n    \"nombreBeneficiario2\": \"APLAZO\",\n    \"tipoCuentaBeneficiario2\": \"40\",\n    \"cuentaBeneficiario2\": \"646180368300000001\",\n    \"rfcCurpBeneficiario\": \"STP081030FE6\",\n    \"conceptoPago\": \"L88863:{{trxId}}\", \n    \"referenciaNumerica\": 140700, \n    \"empresa\": \"APLAZO\",\n    \"tipoPago\": \"5\", \n    \"tsLiquidacion\": \"1695164880917\"\n}'"
+			},
+			"response": []
+		},
+		{
+			"name": "GET_Loans OUTSTANDING, LATE DEFAULTED",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"",
+							"        // Especifica el loanName que deseas buscar",
+							"    const targetLoan = pm.globals.get(\"loan\");",
+							"    const statusLoan = \"HISTORICAL\";",
+							"",
+							"    // Obtén la respuesta en formato JSON",
+							"    const response = pm.response.json();",
+							"",
+							"    // Verifica si la clave \"content\" existe",
+							"    pm.test(\"Hay registros en HISTORICAL\", function () {",
+							"        pm.expect(response).to.have.property('content');",
+							"    });",
+							"",
+							"    // Busca el loanName en el array \"content\"",
+							"    pm.test(`El loan id \"${targetLoan}\" está presente en el JSON`, function () {",
+							"        const found = response.content.some(item => item.id === targetLoan);",
+							"        pm.expect(found).to.be.true;",
+							"    });",
+							"",
+							"    pm.test(`El loan id \"${targetLoan}\" está como HISTORICAL`, function () {",
+							"        const found = response.content.some(item => item.status === statusLoan);",
+							"        pm.expect(found).to.be.true;",
+							"    });",
+							"",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "{{Authorization-customer}}"
+					}
+				],
+				"url": {
+					"raw": "https://customer-mono.aplazo.net/api/v1/customer/loan-history?page=0&size=10&status=HISTORICAL",
+					"protocol": "https",
+					"host": [
+						"customer-mono",
+						"aplazo",
+						"net"
+					],
+					"path": [
+						"api",
+						"v1",
+						"customer",
+						"loan-history"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						},
+						{
+							"key": "status",
+							"value": "HISTORICAL"
+						}
+					]
+				},
+				"description": "Generated from cURL: curl --location 'https://customer-mono.aplazo.net/api/v1/customer/loan-history?page=0&size=10&status=OUTSTANDING&status=LATE&status=DEFAULTED&status=HISTORICAL' \\\n--header 'Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI1MjIyODMwMjgxMjQiLCJleHBSZWZyZXNoIjoiMjAyNC0xMC0xOFQyMTo1MToyNy4zNzc5NTciLCJyb2xlIjoiUk9MRV9DVVNUT01FUiIsInJlZ1N0YXRlQ29kZSI6InNhdmVkX2xvZ2luIiwibmFtZSI6Ik1hdXJpY2lvIEVzbGF2YSBNYXRlbyIsImN1c3RvbWVySWQiOjE5MjA3LCJzZXNzaW9uSWQiOiJiZWIyNjJjYy01MjdhLTQ1MmQtYTQ0MS0xOTY0ZWVmNzgyOWQiLCJleHAiOjE3MjY3ODI2ODcsIjJmYSI6dHJ1ZSwiZmluaXNoUmVnIjpmYWxzZSwicmVmcmVzaFRva2VuIjoiYWRlNmI5YmItMTZhMi00ZWQ0LWFkZDUtNjExMDkwODk1OTc1In0.GCdqJY3cx-_1EwGKNg5Bgvlca914VzqZdP9N9UqDFe5dfcDHUk0b8Vlqdra5MOd-heZoIdos-Y_MZtWrLdEMDg'"
+			},
+			"response": []
+		}
+	]
+}
